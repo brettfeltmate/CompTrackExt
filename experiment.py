@@ -102,7 +102,7 @@ class CompensatoryTrackingTask(klibs.Experiment):
 		p = subprocess.Popen(
 		"defaults read ~/Library/Preferences/.GlobalPreferences CGDisableCursorLocationMagnification 1", shell=True)
 
-		if p is 0:
+		if p == 0:
 			fill((25, 25, 28))
 			blit(NumpySurface(import_image_file('ExpAssets/Resources/image/accessibility_warning.png')), 5, P.screen_c)
 			msg = 'Please ensure cursor shake-magnification is off before running this experiment.'
@@ -125,7 +125,7 @@ class CompensatoryTrackingTask(klibs.Experiment):
 
 		surplus = P.experiment_duration - sum(self.itis)
 
-		if surplus > P.trials_per_block * P.blocks_per_experiment * [P.iti[1]]:
+		if surplus > P.trials_per_block * P.blocks_per_experiment * P.iti[1]:
 			raise ValueError("This experiment duration cannot be met with this trial count/ITI combination.")
 		while surplus > 0:
 			index = random.randint(0,len(self.itis) -1)

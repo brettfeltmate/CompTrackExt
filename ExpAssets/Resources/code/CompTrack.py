@@ -189,11 +189,11 @@ class CompTrack(EnvAgent):
 
 
 	def mitigate(self, m_type):
-		if m_type is "Audio":
+		if m_type == "Audio":
 			self.current_mitigation = AudioMitigation(self, self.audio_warning_file_path, self.audio_warning_duration)
 			self.current_mitigation.run()
 
-		if m_type is "pause":
+		if m_type == "pause":
 			self.current_mitigation = PauseMitigation(self, self.pause_duration, self.pausing_clears_screen, self.pause_targets)
 			self.current_mitigation.run()
 
@@ -224,22 +224,22 @@ class CompTrack(EnvAgent):
 		Renders stimuli to screen.
 		"""
 		debug_this = False
-		if debug_this: print "\n\n>>> __render() >>>"
+		if debug_this: print("\n\n>>> __render() >>>")
 
 		# if pausing everything, just don't ever blit or flip, EZ
-		if self.mitigating and self.current_mitigation.mitigation_type is "pause" and self.current_mitigation.include_targets:
+		if self.mitigating and self.current_mitigation.mitigation_type == "pause" and self.current_mitigation.include_targets:
 			return
 
 		# Paint & populate display
 		fill(self.palette['grue'])
 
 		# if in a screen-clearing mitigation, just flip after the fill
-		if self.mitigating and self.current_mitigation.mitigation_type is "pause" and self.current_mitigation.clear_screen:
+		if self.mitigating and self.current_mitigation.mitigation_type == "pause" and self.current_mitigation.clear_screen:
 			flip()
 			return
 
 		# Spawn & blit PVT display (if PVT event; is None if between events and positive during ITIs)
-		if self.time_until_next_trial is 0:
+		if self.time_until_next_trial == 0:
 			# Digit string represents milliseconds elapsed since PVT onset
 			digit_str = str((now() - self.next_trial_start_time) * 1000)[0:4]
 			if digit_str[-1] == ".":
@@ -258,7 +258,7 @@ class CompTrack(EnvAgent):
 		# Present display
 		flip()
 
-		if debug_this: print "\n<<< __render() <<<"
+		if debug_this: print("\n<<< __render() <<<")
 
 	def __buffeting_force(self):
 		"""
@@ -312,8 +312,8 @@ class CompTrack(EnvAgent):
 		Captures mouse motion events
 		"""
 
-		# print "\n\n >>> __capture_mouse_input() >>>"
-		if self.mitigating and self.current_mitigation.mitigation_type is "pause":
+		# print ("\n\n >>> __capture_mouse_input() >>>")
+		if self.mitigating and self.current_mitigation.mitigation_type == "pause":
 			return
 
 		for event in event_queue:
@@ -336,7 +336,7 @@ class CompTrack(EnvAgent):
 		# Maintain mouse cursor at screen center to ensure all movement is catchable (i.e., can't run off screen)
 		mouse_pos(False, P.screen_c)
 
-		# print "\n<<<__capture_mouse_input() <<<"
+		# print ("\n<<<__capture_mouse_input() <<<")
 		return self.current_frame.user_input
 
 
