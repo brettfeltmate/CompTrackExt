@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+# TODO: add break messages between blocks
+# TODO: decide on block count and duration
+# TODO: begin checking/debugging mitigation functionality
+
 __author__ = "Brett Feltmate"
 
 import sdl2.keycode
