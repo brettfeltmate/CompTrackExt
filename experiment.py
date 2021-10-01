@@ -3,6 +3,7 @@
 # TODO: add break messages between blocks
 # TODO: decide on block count and duration
 # TODO: begin checking/debugging mitigation functionality
+# TODO: figure out best way to record time to be congruent w/ bioharness data
 
 __author__ = "Brett Feltmate"
 
