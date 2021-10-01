@@ -40,7 +40,7 @@ saccadic_motion_threshold = 0.15
 #########################################
 multi_session_project = False
 trials_per_block = 10
-blocks_per_experiment = 10
+blocks_per_experiment = 1
 table_defaults = {}
 conditions = []
 default_condition = None
@@ -67,12 +67,12 @@ datafile_ext = ".txt"
 #########################################
 iti = [3,5]  		# s, min/max
 pvt_timeout = 1.0 	# s
-experiment_duration = 500 	# s
+desired_block_duration = 60 	# s
 poll_while_moving = True
-poll_at_fixation = True
+poll_at_fixation = False
 reset_target_after_poll = True
 assessment_sample_size = 5
-supervise_input = True
+supervise_input = False
 max_input_step = 5  # ie. is input is supervised, this is the threshld initiating it, in pixels-travlled-per-frame
 excessive_lapse_threshold = 3  # in number of lapses per assessment window
 max_mean_rt = 0.5

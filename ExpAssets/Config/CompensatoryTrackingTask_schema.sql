@@ -20,15 +20,14 @@ CREATE TABLE trials (
 CREATE TABLE frames (
 	id integer primary key autoincrement not null,
 	participant_id text not null,
-	trial_num integer not null,
 	block_num integer not null,
+	trial_num integer not null,
 	timestamp text not null,
 	buffeting_force integer not null,
-	additional_force integer not null,
-	net_force integer not null,
 	user_input integer not null,
 	displacement integer not null,
-	rt integer not null
+	PVT_occurring text not null,
+	rt text not null
 );
 
 CREATE TABLE assessments (
@@ -37,7 +36,7 @@ CREATE TABLE assessments (
 	trial_num integer not null,
 	block_num integer not null,
 	timestamp text not null,
-	mean_rt integer not null,
+	mean_rt text not null,
 	lapses integer not null,
 	samples integer not null
 )

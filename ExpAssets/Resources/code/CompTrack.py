@@ -36,7 +36,8 @@ class CompTrack(EnvAgent):
 
 		self.frames = []
 		self.assessments = []
-		self._position = None
+		self._target_position = None
+		self._cursor_position = None
 
 		#
 		# Define styles & create stimuli
@@ -51,7 +52,7 @@ class CompTrack(EnvAgent):
 
 		self.stim_sizes = {
 			'cursor': deg_to_px(1),
-			'fixation': [deg_to_px(1.4), deg_to_px(0.2)],
+			'target': [deg_to_px(1.4), deg_to_px(0.2)],
 			'PVT_frame': [deg_to_px(6), deg_to_px(3)],
 			'PVT_digits': deg_to_px(1.5),
 			'inner_ring': [P.screen_x * 0.3, deg_to_px(0.1)],
@@ -64,9 +65,9 @@ class CompTrack(EnvAgent):
 
 		# Visual assets
 		self.assets = {
-			'fixation': Annulus(
-				diameter=self.stim_sizes['fixation'][0],
-				thickness=self.stim_sizes['fixation'][1],
+			'target': Annulus(
+				diameter=self.stim_sizes['target'][0],
+				thickness=self.stim_sizes['target'][1],
 				fill=self.palette['white']
 			),
 			'inner_ring': Annulus(
@@ -107,7 +108,7 @@ class CompTrack(EnvAgent):
 		self.poll_while_moving = P.poll_while_moving
 		self.poll_at_fixation = P.poll_at_fixation
 		self.reset_target_after_poll = P.reset_target_after_poll
-		self.x_bounds = [int(0.5 * self.stim_sizes['cursor']),int(P.screen_x - 0.5 * self.stim_sizes['cursor'])]
+		self.x_bounds = [int(0.5 * self.stim_sizes['cursor']), int(P.screen_x - 0.5 * self.stim_sizes['cursor'])]
 
 		# performance assessments
 		self.assessment_sample_size = P.assessment_sample_size
@@ -125,8 +126,9 @@ class CompTrack(EnvAgent):
 		self.mitigating = False  # only true when a mitigation has run
 		self.current_mitigation = None
 
-		# set an initial mouse position
-		self.position = P.screen_c[0]
+		# set initial mouse & target positions
+		self.cursor_position = P.screen_c[0]
+		self.target_position = P.screen_c[0]
 
 	def assess_performance(self):
 		"""
@@ -153,7 +155,8 @@ class CompTrack(EnvAgent):
 		self.current_frame.rt= rt
 		self.assess_performance()		# does nothing if keys in P.assessing are False
 		if self.reset_target_after_poll:
-		 	self.position = P.screen_c[0]
+			self.cursor_position = P.screen_c[0]
+			self.target_position = P.screen_c[0]
 		self.next_trial_start_time = None
 
 	def refresh(self, event_queue):
@@ -172,7 +175,7 @@ class CompTrack(EnvAgent):
 		# then iteratively add all force contributions to current position, if they exist on this pass
 		for force in ['net', 'additional', 'buffeting']:
 			try:
-				self.position = self.position  + self.current_frame.forces[force]
+				self.target_position = self.target_position + self.current_frame.forces[force]
 			except TypeError:
 				pass
 
@@ -180,11 +183,11 @@ class CompTrack(EnvAgent):
 		self.__capture_mouse_input(event_queue)
 
 		# set initial position update based on mouse activity
-		self.position = self.position + self.current_frame.user_input
+		self.cursor_position = self.cursor_position + self.current_frame.user_input
 
 		self.__render()
-		self.current_frame.displacement = line_segment_len(P.screen_c, [self.position, P.screen_c[1]])
-		self.current_frame.target_position = self.position
+		self.current_frame.displacement = line_segment_len([self.target_position, P.screen_c[1]], [self.cursor_position, P.screen_c[1]])
+		self.current_frame.target_position = self.target_position
 
 
 
@@ -217,7 +220,8 @@ class CompTrack(EnvAgent):
 		except IndexError:
 			self.frames.append([])
 			self.__new_frame()
-		self.current_frame.target_position = self.position
+		self.current_frame.target_position = self.target_position
+		self.current_frame.cursor_position = self.cursor_position
 
 	def __render(self):
 		"""
@@ -240,6 +244,7 @@ class CompTrack(EnvAgent):
 
 		# Spawn & blit PVT display (if PVT event; is None if between events and positive during ITIs)
 		if self.time_until_next_trial == 0:
+			self.current_frame.PVT_occurring = True
 			# Digit string represents milliseconds elapsed since PVT onset
 			digit_str = str((now() - self.next_trial_start_time) * 1000)[0:4]
 			if digit_str[-1] == ".":
@@ -249,11 +254,11 @@ class CompTrack(EnvAgent):
 			blit(digits, BL_CENTER, P.screen_c)
 		# Otherwise, blit cursor to updated position
 		else:
-			blit(self.assets['fixation'], BL_CENTER, P.screen_c)
 			blit(self.assets['inner_ring'], BL_CENTER, P.screen_c)
 			blit(self.assets['middle_ring'], BL_CENTER, P.screen_c)
 			blit(self.assets['outer_ring'], BL_CENTER, P.screen_c)
-			blit(self.assets['cursor'], BL_CENTER, [self.position, P.screen_c[1]])
+			blit(self.assets['target'], BL_CENTER, [self.target_position, P.screen_c[1]])
+			blit(self.assets['cursor'], BL_CENTER, [self.cursor_position, P.screen_c[1]])
 
 		# Present display
 		flip()
@@ -274,7 +279,7 @@ class CompTrack(EnvAgent):
 		i.e., scales resultant displacement value applied to cursor.
 		"""
 		t = self.current_frame.timestamp
-		return sin(t) + sin(0.3 * t) + sin(0.5 * t) + sin(0.7 * t) - sin(0.9 * t)
+		return sin(t) + sin(0.3 * t) + cos(0.5 * t) + sin(0.7 * t) - cos(0.9 * t)
 
 	def __compute_buffet_modifier_values(self, start=0.1, stop=1.4, count=100):
 		"""
@@ -341,15 +346,15 @@ class CompTrack(EnvAgent):
 
 
 	@property
-	def position(self):
+	def cursor_position(self):
 		"""
 		Gets current position of cursor.
 		"""
-		return self._position
+		return self._cursor_position
 
 
-	@position.setter
-	def position(self, val):
+	@cursor_position.setter
+	def cursor_position(self, val):
 		"""
 		Set position of cursor, censors values which would place the cursor off screen
 		"""
@@ -359,7 +364,28 @@ class CompTrack(EnvAgent):
 			else:
 				val = self.x_bounds[1]
 
-		self._position = val
+		self._cursor_position = val
+
+	@property
+	def target_position(self):
+		"""
+		Gets current position of cursor.
+		"""
+		return self._target_position
+
+
+	@target_position.setter
+	def target_position(self, val):
+		"""
+		Set position of cursor, censors values which would place the cursor off screen
+		"""
+		if int(val) not in range(*self.x_bounds):
+			if val < self.x_bounds[0]:
+				val = self.x_bounds[0]
+			else:
+				val = self.x_bounds[1]
+
+		self._target_position = val
 
 	@property
 	def next_trial_start_time(self):
@@ -395,19 +421,20 @@ class CompTrackFrame(EnvAgent):
 		self.trial_number = P.trial_number
 		self.block_number = P.block_number
 		self.__timestamp = timestamp
-		self.user_input = -1
-		self.displacement = -1
-		self.rt = -1
-		self.forces = {'buffeting': -1, 'additional': -1, 'net': -1}
-		self.target_position = -1  # note: at end, i.e, post forces & input
+		self.user_input = 0
+		self.displacement = 0
+		self.rt = 0
+		self.forces = {'buffeting': 0, 'additional': 0, 'net': 0}
+		self.cursor_position = 0
+		self.target_position = 0  # note: at end, i.e, post forces & input
+		self.PVT_occurring = False
 
 
 	def dump(self, verbose=False):
 		data = [P.participant_id, self.block_number, self.trial_number, self.timestamp,
-				self.forces['buffeting'], self.forces['additional'], self.forces['net'],
-				self.user_input, self.target_position, self.displacement, self.rt]
-		labels = ['participant_id','block_num', 'trial_num', 'timestamp', 'buffeting_force', 'additional_force', 'net_force',
-				  'user_input', 'target_position','displacement', 'rt']
+				self.forces['buffeting'], self.user_input, self.displacement, self.PVT_occurring, self.rt]
+		labels = ['participant_id','block_num', 'trial_num', 'timestamp',
+					'buffeting_force', 'user_input', 'displacement', 'PVT_occurring', 'rt']
 		if verbose:
 			dump_str = ''
 			for i in range(0, len(labels)):
@@ -435,7 +462,7 @@ class CompTrackAssessment(EnvAgent):
 
 	def dump(self):
 		# note: sequence is important as it mirrors the corresponding data table
-		return [self.participant_id, self.trial_number, self.block_number, self.timestamp,  self.mean_rt,self.lapses,  self.samples]
+		return [self.participant_id, self.trial_number, self.block_number, self.timestamp,  self.mean_rt, self.lapses,  self.samples]
 
 
 def mitigation_label(mitigation):

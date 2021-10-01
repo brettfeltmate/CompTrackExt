@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 __author__ = "Brett Feltmate"
+
+import sdl2.keycode
 from sdl2 import SDL_GetKeyFromName, SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDLK_SPACE
 import random
 import klibs
@@ -13,7 +15,7 @@ from klibs.KLEventInterface import TrialEventTicket as TVT
 from klibs.KLConstants import *
 from klibs.KLKeyMap import KeyMap
 from klibs.KLResponseCollectors import Response, KeyPressResponse
-import sdl2
+from sdl2 import *
 from klibs.KLGraphics.KLNumpySurface import *
 from CompTrack import *
 import klibs.KLDatabase
@@ -40,41 +42,51 @@ class CompensatoryTrackingTask(klibs.Experiment):
 		# CompTrack class handles all events
 		self.comp_track = CompTrack()
 		self.comp_track.timeout_after = P.pvt_timeout
-		self.generate_ITIs()
+		# self.generate_ITIs()
 
 
 		# Ensure mouse starts at centre and set invisible
 		mouse_pos(False, P.screen_c)
 		hide_mouse_cursor()
 
+		print('initial trials per block: {}'.format(P.trials_per_block))
+
 
 	def block(self):
-		pass
+		self.generate_ITIs()
+		P.trials_per_block = len(self.itis)
+
+		print("trials per block: {}".format(P.trials_per_block))
+		print("itis summed: {}".format(sum(self.itis)))
 
 	def setup_response_collector(self):
 		pass
 
 	def trial_prep(self):
+		# Ensure mouse starts at centre and set invisible
+		mouse_pos(False, P.screen_c)
+		hide_mouse_cursor()
+
 		self.comp_track.next_trial_start_time = now() + self.itis.pop()
 		self.start = now()
 		pump()
 
 	def trial(self):
 		start = now()
-		rt = -1
+		rt = 0
 
-		while now() < self.comp_track.next_trial_start_time + P.pvt_timeout:
+		while now() < self.comp_track.next_trial_start_time + P.pvt_timeout and not rt:
 			event_q = pump(True)
 			ui_request(None, True, event_q)
 			self.comp_track.refresh(event_q)
 			if now() >= self.comp_track.next_trial_start_time:
 				for event in event_q:
-					if event.type == SDL_KEYDOWN and event.key.keysym == SDLK_SPACE:
-						key = event.key.keysym # keyboard button event object
-						ui_request(key) # check for ui requests (ie. quit, calibrate)
-						if key == SDLK_SPACE:
+					if event.type == SDL_KEYDOWN:
+						key = event.key.keysym
+						if key.sym is sdl2.keycode.SDLK_SPACE:
 							rt = now() - start
 							break
+
 		if not rt:
 			# here's where we could  add feedback immediately after a lapse, were it desired
 			pass
@@ -113,26 +125,49 @@ class CompensatoryTrackingTask(klibs.Experiment):
 			quit()
 
 	def generate_ITIs(self):
+		block_trial_count = int(P.desired_block_duration / math.ceil(mean(P.iti) + 0.5))
 
-		trial_count = P.trials_per_block * P.blocks_per_experiment
-		expected_duration = (0.5 * trial_count * P.pvt_timeout) + ( trial_count * sum(P.iti) * 0.5)
+		self.itis = np.random.uniform(
+			low=P.iti[0],
+			high=P.iti[1] + 1,
+			size=block_trial_count
+		)
 
-		if expected_duration > P.experiment_duration:
-			raise ValueError("It is unlikely this number of trials, of the proposed ITIs, can be completed in the allotted time.")
+		if np.sum(self.itis) < P.desired_block_duration:
+			while np.sum(self.itis) < P.desired_block_duration:
+				iti = np.random.randint(
+					low=P.iti[0],
+					high=P.iti[1] + 1
+				)
+				self.itis = np.append(self.itis, iti)
 
-		# start with a uniform block of minimum itis
-		self.itis = P.trials_per_block * P.blocks_per_experiment * [P.iti[0]]
+		elif np.sum(self.itis) > P.desired_block_duration:
+			while np.sum(self.itis) > P.desired_block_duration:
+				self.itis = self.itis[:-1]
 
-		surplus = P.experiment_duration - sum(self.itis)
+		self.itis = self.itis.tolist()
 
-		if surplus > P.trials_per_block * P.blocks_per_experiment * P.iti[1]:
-			raise ValueError("This experiment duration cannot be met with this trial count/ITI combination.")
-		while surplus > 0:
-			index = random.randint(0,len(self.itis) -1)
-			if self.itis[index] < P.iti[1]:
-				self.itis[index] += 1
-				surplus -= 1
-			surplus = P.experiment_duration - sum(self.itis)
+
+
+		# trial_count = P.trials_per_block * P.blocks_per_experiment
+		# expected_duration = (0.5 * trial_count * P.pvt_timeout) + ( trial_count * sum(P.iti) * 0.5)
+		#
+		# if expected_duration > P.experiment_duration:
+		# 	raise ValueError("It is unlikely this number of trials, of the proposed ITIs, can be completed in the allotted time.")
+		#
+		# # start with a uniform block of minimum itis
+		# self.itis = P.trials_per_block * P.blocks_per_experiment * [P.iti[0]]
+		#
+		# surplus = P.experiment_duration - sum(self.itis)
+		#
+		# if surplus > P.trials_per_block * P.blocks_per_experiment * P.iti[1]:
+		# 	raise ValueError("This experiment duration cannot be met with this trial count/ITI combination.")
+		# while surplus > 0:
+		# 	index = random.randint(0,len(self.itis) -1)
+		# 	if self.itis[index] < P.iti[1]:
+		# 		self.itis[index] += 1
+		# 		surplus -= 1
+		# 	surplus = P.experiment_duration - sum(self.itis)
 
 	@property
 	def event_queue(self):
