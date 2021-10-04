@@ -6,7 +6,7 @@
 collect_demographics = True
 manual_demographics_collection = False
 manual_trial_generation = False
-run_practice_blocks = True
+run_practice_blocks = False
 multi_user = False
 view_distance = 57 # in centimeters, 57cm = 1 deg of visual angle per cm of screen
 
@@ -38,9 +38,9 @@ saccadic_motion_threshold = 0.15
 #########################################
 # Experiment Structure
 #########################################
-multi_session_project = False
-trials_per_block = 10
-blocks_per_experiment = 1
+multi_session_project = True
+trials_per_block = 1
+blocks_per_experiment = 6
 table_defaults = {}
 conditions = []
 default_condition = None
@@ -65,9 +65,9 @@ datafile_ext = ".txt"
 #########################################
 # PROJECT-SPECIFIC VARS
 #########################################
-iti = [3,5]  		# s, min/max
+iti = [2, 10]  		# s, min/max
 pvt_timeout = 1.0 	# s
-desired_block_duration = 60 	# s
+desired_block_duration = 3000 	# s
 poll_while_moving = True
 poll_at_fixation = False
 reset_target_after_poll = True
@@ -83,3 +83,4 @@ pause_duration = 5
 pausing_clears_screen = False
 pause_targets = True
 ramp_factors = []
+session_number = 1

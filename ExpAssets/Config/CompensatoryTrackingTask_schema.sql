@@ -10,6 +10,7 @@ CREATE TABLE participants (
 CREATE TABLE trials (
     id integer primary key autoincrement not null,
     participant_id integer not null references participants(id),
+    session_num integer not null,
     block_num integer not null,
     trial_num integer not null,
     timestamp text not null,
@@ -20,6 +21,7 @@ CREATE TABLE trials (
 CREATE TABLE frames (
 	id integer primary key autoincrement not null,
 	participant_id text not null,
+	session_num integer not null,
 	block_num integer not null,
 	trial_num integer not null,
 	timestamp text not null,
@@ -33,8 +35,9 @@ CREATE TABLE frames (
 CREATE TABLE assessments (
 	id integer primary key autoincrement not null,
 	participant_id text not null,
-	trial_num integer not null,
+    session_num integer not null,
 	block_num integer not null,
+	trial_num integer not null,
 	timestamp text not null,
 	mean_rt text not null,
 	lapses integer not null,

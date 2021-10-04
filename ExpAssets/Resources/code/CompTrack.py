@@ -230,6 +230,8 @@ class CompTrack(EnvAgent):
 		debug_this = False
 		if debug_this: print("\n\n>>> __render() >>>")
 
+		hide_mouse_cursor()
+
 		# if pausing everything, just don't ever blit or flip, EZ
 		if self.mitigating and self.current_mitigation.mitigation_type == "pause" and self.current_mitigation.include_targets:
 			return
@@ -420,6 +422,7 @@ class CompTrackFrame(EnvAgent):
 		self.participant_id = P.participant_id
 		self.trial_number = P.trial_number
 		self.block_number = P.block_number
+		self.session_number = P.session_number
 		self.__timestamp = timestamp
 		self.user_input = 0
 		self.displacement = 0
@@ -431,9 +434,9 @@ class CompTrackFrame(EnvAgent):
 
 
 	def dump(self, verbose=False):
-		data = [P.participant_id, self.block_number, self.trial_number, self.timestamp,
+		data = [P.participant_id, self.session_number, self.block_number, self.trial_number, self.timestamp,
 				self.forces['buffeting'], self.user_input, self.displacement, self.PVT_occurring, self.rt]
-		labels = ['participant_id','block_num', 'trial_num', 'timestamp',
+		labels = ['participant_id', 'session_num', 'block_num', 'trial_num', 'timestamp',
 					'buffeting_force', 'user_input', 'displacement', 'PVT_occurring', 'rt']
 		if verbose:
 			dump_str = ''
@@ -462,7 +465,7 @@ class CompTrackAssessment(EnvAgent):
 
 	def dump(self):
 		# note: sequence is important as it mirrors the corresponding data table
-		return [self.participant_id, self.trial_number, self.block_number, self.timestamp,  self.mean_rt, self.lapses,  self.samples]
+		return [self.participant_id, self.trial_number, self.block_number, self.session_number, self.timestamp,  self.mean_rt, self.lapses,  self.samples]
 
 
 def mitigation_label(mitigation):

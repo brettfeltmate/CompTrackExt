@@ -1,18 +1,21 @@
 # -*- coding: utf-8 -*-
 
-# TODO: add break messages between blocks
 # TODO: decide on block count and duration
 # TODO: begin checking/debugging mitigation functionality
 # TODO: figure out best way to record time to be congruent w/ bioharness data
+# TODO: Double check how multi-session is handled by ANTI-VEA in OMEGA
+# TODO: Test on OMEGA
+# TODO: Revise experiment messages
 
 __author__ = "Brett Feltmate"
 
 import sdl2.keycode
+from klibs.KLCommunication import message
 from sdl2 import SDL_GetKeyFromName, SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDLK_SPACE
 import random
 import klibs
 from klibs import P
-from klibs.KLUserInterface import ui_request
+from klibs.KLUserInterface import ui_request, any_key
 from klibs.KLResponseCollectors import KeyPressResponse, KeyMap
 from klibs.KLGraphics import *
 from klibs.KLUtilities import *
@@ -25,6 +28,7 @@ from klibs.KLGraphics.KLNumpySurface import *
 from CompTrack import *
 import klibs.KLDatabase
 import subprocess
+
 
 from klibs.KLDatabase import EntryTemplate
 
@@ -54,15 +58,53 @@ class CompensatoryTrackingTask(klibs.Experiment):
 		mouse_pos(False, P.screen_c)
 		hide_mouse_cursor()
 
-		print('initial trials per block: {}'.format(P.trials_per_block))
+		# print('initial trials per block: {}'.format(P.trials_per_block))
+
+
+		self.exp_messages = {
+			'instrux':
+				'In this task you will pursue a moving target (a white circle) by moving your cursor\n' +
+				'(a green dot), with the goal of keeping your cursor centred within the target to the best of your ability.\n' +
+				'You will control your cursor via the trackball provided to you.\n\n' +
+				'At random intervals a large red timer will appear onscreen and begin counting upwards.\n' +
+				'When this happens, press the spacebar key as quickly as possible to terminate it.\n' +
+				'Upon termination of the timer, the pursuit task will immediately begin again.\n\n' +
+				'If you have any questions please ask them now, and press spacebar when you are ready to proceed.',
+
+			'progress': 'Beginning block {} of {}.\n',
+			'break': 'Feel free to take a break at this time.',
+			'meal': 'Meal break! The experiment will resume in approximately 30 minutes.',
+			'complete': 'Task completed! Thank you! Press spacebar to exit the experiment.',
+			'continue': '\n\nWhen you are ready, press spacebar to begin.'
+		}
 
 
 	def block(self):
 		self.generate_ITIs()
 		P.trials_per_block = len(self.itis)
 
-		print("trials per block: {}".format(P.trials_per_block))
-		print("itis summed: {}".format(sum(self.itis)))
+		if P.block_number == 1:
+			fill()
+			message(self.exp_messages['instrux'], location=P.screen_c, registration=5)
+			flip()
+			any_key()
+
+		txt = self.exp_messages['progress'].format(P.block_number, P.blocks_per_experiment)
+
+		if P.block_number > 1:
+			if P.block_number == 3:
+				txt += self.exp_messages['meal']
+			else:
+				txt += self.exp_messages['break']
+
+		txt += self.exp_messages['continue']
+
+		fill()
+		message(txt, location=P.screen_c, registration=5)
+		flip()
+
+		any_key()
+
 
 	def setup_response_collector(self):
 		pass
@@ -97,10 +139,12 @@ class CompensatoryTrackingTask(klibs.Experiment):
 			pass
 		self.comp_track.end_trial(rt)
 
-		return {'block_num': P.block_number,
-				'trial_num' : P.trial_number,
-				'timestamp': self.comp_track.current_frame.timestamp,
-				'rt': self.comp_track.current_frame.rt
+		return {
+			'session_num': P.session_number,
+			'block_num': P.block_number,
+			'trial_num' : P.trial_number,
+			'timestamp': self.comp_track.current_frame.timestamp,
+			'rt': self.comp_track.current_frame.rt
 		}
 
 	def trial_clean_up(self):
@@ -113,6 +157,11 @@ class CompensatoryTrackingTask(klibs.Experiment):
 		for trial in self.comp_track.frames:
 			for f in trial:
 				self.db.insert(f.dump(), 'frames')
+
+		fill()
+		message(self.exp_messages['complete'], location=P.screen_c, registration=5)
+		flip()
+		any_key()
 
 
 	def check_osx_mouse_shake_setting(self):
@@ -132,7 +181,7 @@ class CompensatoryTrackingTask(klibs.Experiment):
 	def generate_ITIs(self):
 		block_trial_count = int(P.desired_block_duration / math.ceil(mean(P.iti) + 0.5))
 
-		self.itis = np.random.uniform(
+		self.itis = np.random.randint(
 			low=P.iti[0],
 			high=P.iti[1] + 1,
 			size=block_trial_count
@@ -152,28 +201,6 @@ class CompensatoryTrackingTask(klibs.Experiment):
 
 		self.itis = self.itis.tolist()
 
-
-
-		# trial_count = P.trials_per_block * P.blocks_per_experiment
-		# expected_duration = (0.5 * trial_count * P.pvt_timeout) + ( trial_count * sum(P.iti) * 0.5)
-		#
-		# if expected_duration > P.experiment_duration:
-		# 	raise ValueError("It is unlikely this number of trials, of the proposed ITIs, can be completed in the allotted time.")
-		#
-		# # start with a uniform block of minimum itis
-		# self.itis = P.trials_per_block * P.blocks_per_experiment * [P.iti[0]]
-		#
-		# surplus = P.experiment_duration - sum(self.itis)
-		#
-		# if surplus > P.trials_per_block * P.blocks_per_experiment * P.iti[1]:
-		# 	raise ValueError("This experiment duration cannot be met with this trial count/ITI combination.")
-		# while surplus > 0:
-		# 	index = random.randint(0,len(self.itis) -1)
-		# 	if self.itis[index] < P.iti[1]:
-		# 		self.itis[index] += 1
-		# 		surplus -= 1
-		# 	surplus = P.experiment_duration - sum(self.itis)
-
 	@property
 	def event_queue(self):
 		return pump(True)
@@ -185,12 +212,7 @@ class CompensatoryTrackingTask(klibs.Experiment):
 			return "trial_{}_{}".format(P.trial_number, event)
 
 	def current_frame_id(self):
-		return "{}:{}".format(P.trial_number - 1, len(self.frames[P.trial_number] - 1)
-
-
-
-)
-
+		return "{}:{}".format(P.trial_number - 1, len(self.frames[P.trial_number] - 1))
 
 
 class PVTResponse(KeyPressResponse):
