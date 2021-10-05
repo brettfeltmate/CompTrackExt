@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# TODO: decide on block count and duration
 # TODO: begin checking/debugging mitigation functionality
-# TODO: figure out best way to record time to be congruent w/ bioharness data
 # TODO: Double check how multi-session is handled by ANTI-VEA in OMEGA
 # TODO: Test on OMEGA
 # TODO: Revise experiment messages
+# TODO: Rename project to reflect shift from compensatory to pursuit tracking
+
+"""
+Wondered if timestamps should be recorded in a format congruent w/ bioharness,
+but might be fine as-is; timestamps currently recorded in epoch time,
+which is easily convertable to standard date-time after the fact
+"""
+
+
 
 __author__ = "Brett Feltmate"
 
