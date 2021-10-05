@@ -83,24 +83,22 @@ class CompensatoryTrackingTask(klibs.Experiment):
 		self.generate_ITIs()
 		P.trials_per_block = len(self.itis)
 
-		if P.block_number == 1:
+		if P.session_number in [1, 7]:
 			fill()
 			message(self.exp_messages['instrux'], location=P.screen_c, registration=5)
 			flip()
 			any_key()
 
-		txt = self.exp_messages['progress'].format(P.block_number, P.blocks_per_experiment)
-
-		if P.block_number > 1:
-			if P.block_number == 3:
-				txt += self.exp_messages['meal']
-			else:
-				txt += self.exp_messages['break']
-
-		txt += self.exp_messages['continue']
+		# txt = self.exp_messages['progress'].format(P.block_number, P.blocks_per_experiment)
+		#
+		# if P.block_number > 1:
+		# 	if P.block_number == 3:
+		# 		txt += self.exp_messages['meal']
+		# 	else:
+		# 		txt += self.exp_messages['break']
 
 		fill()
-		message(txt, location=P.screen_c, registration=5)
+		message(self.exp_messages['continue'], location=P.screen_c, registration=5)
 		flip()
 
 		any_key()
@@ -187,16 +185,16 @@ class CompensatoryTrackingTask(klibs.Experiment):
 			size=block_trial_count
 		)
 
-		if np.sum(self.itis) < P.desired_block_duration:
-			while np.sum(self.itis) < P.desired_block_duration:
+		if np.sum(np.add(self.itis, 0.5)) < P.desired_block_duration:
+			while np.sum(np.add(self.itis, 0.5)) < P.desired_block_duration:
 				iti = np.random.randint(
 					low=P.iti[0],
 					high=P.iti[1] + 1
 				)
 				self.itis = np.append(self.itis, iti)
 
-		elif np.sum(self.itis) > P.desired_block_duration:
-			while np.sum(self.itis) > P.desired_block_duration:
+		elif np.sum(np.add(self.itis, 0.5)) > P.desired_block_duration:
+			while np.sum(np.add(self.itis, 0.5)) > P.desired_block_duration:
 				self.itis = self.itis[:-1]
 
 		self.itis = self.itis.tolist()
