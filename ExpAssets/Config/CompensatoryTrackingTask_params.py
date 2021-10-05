@@ -65,7 +65,7 @@ datafile_ext = ".txt"
 #########################################
 # PROJECT-SPECIFIC VARS
 #########################################
-iti = [1, 9]  		# s, min/max
+iti = [2, 8]  		# s, min/max
 pvt_timeout = 1.0 	# s
 desired_block_duration = 2700 	# s
 poll_while_moving = True
