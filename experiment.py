@@ -57,7 +57,7 @@ class CompensatoryTrackingTask(klibs.Experiment):
 
 		# CompTrack class handles all events
 		self.comp_track = CompTrack()
-		self.comp_track.timeout_after = P.pvt_timeout
+		self.comp_track.rt_lapse_criterion = P.rt_lapse_criterion
 		# self.generate_ITIs()
 
 
@@ -77,32 +77,21 @@ class CompensatoryTrackingTask(klibs.Experiment):
 				'When this happens, press the spacebar key as quickly as possible to terminate it.\n' +
 				'Upon termination of the timer, the pursuit task will immediately begin again.\n\n' +
 				'If you have any questions please ask them now, and press spacebar when you are ready to proceed.',
-
-			'progress': 'Beginning block {} of {}.\n',
-			'break': 'Feel free to take a break at this time.',
-			'meal': 'Meal break! The experiment will resume in approximately 30 minutes.',
-			'complete': 'Task completed! Thank you! Press spacebar to exit the experiment.',
+			'complete': 'Block completed! Please call the experimenter in the room.',
 			'continue': '\n\nWhen you are ready, press spacebar to begin.'
 		}
 
+		self.generate_ITIs()
+		self.trial_factory.generate(block_count=1, trial_count=len(self.itis))
+
 
 	def block(self):
-		self.generate_ITIs()
-		P.trials_per_block = len(self.itis)
 
 		if P.session_number in [1, 7]:
 			fill()
 			message(self.exp_messages['instrux'], location=P.screen_c, registration=5)
 			flip()
 			any_key()
-
-		# txt = self.exp_messages['progress'].format(P.block_number, P.blocks_per_experiment)
-		#
-		# if P.block_number > 1:
-		# 	if P.block_number == 3:
-		# 		txt += self.exp_messages['meal']
-		# 	else:
-		# 		txt += self.exp_messages['break']
 
 		fill()
 		message(self.exp_messages['continue'], location=P.screen_c, registration=5)
@@ -119,27 +108,29 @@ class CompensatoryTrackingTask(klibs.Experiment):
 		mouse_pos(False, P.screen_c)
 		hide_mouse_cursor()
 
-		self.comp_track.next_trial_start_time = now() + self.itis.pop()
-		self.start = now()
-		pump()
+		try:
+			self.comp_track.pvt_onset_time = now() + self.itis.pop()
+			self.start = now()
+			pump()
+		except IndexError:
+			pass
 
 	def trial(self):
-		start = now()
 		rt = 0
 
-		while now() < self.comp_track.next_trial_start_time + P.pvt_timeout and not rt:
+		while not rt:
 			event_q = pump(True)
 			ui_request(None, True, event_q)
 			self.comp_track.refresh(event_q)
-			if now() >= self.comp_track.next_trial_start_time:
+			if now() >= self.comp_track.pvt_onset_time:
 				for event in event_q:
 					if event.type == SDL_KEYDOWN:
 						key = event.key.keysym
 						if key.sym is sdl2.keycode.SDLK_SPACE:
-							rt = now() - start
+							rt = round((now() - self.comp_track.pvt_onset_time) * 1000)
 							break
 
-		if not rt:
+		if rt >= P.rt_lapse_criterion:
 			# here's where we could  add feedback immediately after a lapse, were it desired
 			pass
 		self.comp_track.end_trial(rt)

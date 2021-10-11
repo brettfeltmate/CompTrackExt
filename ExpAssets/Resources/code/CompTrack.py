@@ -104,7 +104,7 @@ class CompTrack(EnvAgent):
 		self.max_input_step = P.max_input_step
 		self.supervise_input = P.supervise_input
 		self.forces = {'buffeting': None, 'additional': None, 'net': None}
-		self.timeout_after = None
+		self.rt_lapse_criterion = None
 		self.poll_while_moving = P.poll_while_moving
 		self.poll_at_fixation = P.poll_at_fixation
 		self.reset_target_after_poll = P.reset_target_after_poll
@@ -115,7 +115,7 @@ class CompTrack(EnvAgent):
 		self.assessing = P.assessing
 		self.max_mean_rt = P.max_mean_rt
 		self.excessive_lapse_threshold = P.excessive_lapse_threshold
-		self.__next_trial_start_time = None
+		self.__pvt_onset_time = None
 
 		# mitigations
 		self.audio_warning_file_path = P.audio_warning_file_path
@@ -157,7 +157,7 @@ class CompTrack(EnvAgent):
 		if self.reset_target_after_poll:
 			self.cursor_position = P.screen_c[0]
 			self.target_position = P.screen_c[0]
-		self.next_trial_start_time = None
+		self.pvt_onset_time = None
 
 	def refresh(self, event_queue):
 		# update any mitigations currently in execution
@@ -248,7 +248,7 @@ class CompTrack(EnvAgent):
 		if self.time_until_next_trial == 0:
 			self.current_frame.PVT_occurring = True
 			# Digit string represents milliseconds elapsed since PVT onset
-			digit_str = str((now() - self.next_trial_start_time) * 1000)[0:4]
+			digit_str = str((now() - self.pvt_onset_time) * 1000)[0:4]
 			if digit_str[-1] == ".":
 				digit_str = digit_str[0:3]
 			digits = message(digit_str, 'PVT_digits', flip_screen=False, blit_txt=False)
@@ -390,25 +390,25 @@ class CompTrack(EnvAgent):
 		self._target_position = val
 
 	@property
-	def next_trial_start_time(self):
-		return self.__next_trial_start_time
+	def pvt_onset_time(self):
+		return self.__pvt_onset_time
 
-	@next_trial_start_time.setter
-	def next_trial_start_time(self, val):
-		self.__next_trial_start_time = val
+	@pvt_onset_time.setter
+	def pvt_onset_time(self, val):
+		self.__pvt_onset_time = val
 
 	@property
 	def time_until_next_trial(self):
 		# if the value is None, we are between trials
-		if self.__next_trial_start_time is None:
+		if self.__pvt_onset_time is None:
 			raise ValueError('No trial scheduled')
 
 		# if the value is zero, a PVT is currently active
-		if now() > self.__next_trial_start_time:
+		if now() > self.__pvt_onset_time:
 			return 0
 
 		# else, just give the actual value
-		return self.__next_trial_start_time - now()
+		return self.__pvt_onset_time - now()
 
 	@property
 	def current_frame(self):
@@ -462,6 +462,7 @@ class CompTrackAssessment(EnvAgent):
 		self.trial_number = P.trial_number
 		self.samples = P.assessment_sample_size
 		self.block_number = P.block_number
+		self.session_number = P.session_number
 
 	def dump(self):
 		# note: sequence is important as it mirrors the corresponding data table

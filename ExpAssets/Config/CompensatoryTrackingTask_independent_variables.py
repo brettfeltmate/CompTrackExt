@@ -1,6 +1,7 @@
 from klibs.KLIndependentVariable import IndependentVariableSet
 
 CompensatoryTrackingTask_ind_vars = IndependentVariableSet()
+CompensatoryTrackingTask_ind_vars.add_variable("dummy", str, ['null'])
 
 """
 *** SAMPLE CONFIGURATION - REMOVE AFTER FINISHING REAL CONFIG ***
